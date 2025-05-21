@@ -1,60 +1,35 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>QTrail – Create a Session</title>
-  <style>
-    body { font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: auto; }
-    .pair { margin-bottom: 15px; }
-    .pair input, .pair textarea { width: 100%; box-sizing: border-box; margin: 5px 0; padding: 8px; }
-    button { padding: 10px 15px; font-size: 16px; margin: 5px 0; }
-    #output a { word-break: break-all; }
-  </style>
-</head>
-<body>
-  <h2>Create a Q&A Session</h2>
-  <div id="pairs"></div>
-  <button onclick="addPair()">+ Add Page & Question</button>
-  <button onclick="generateLink()">Generate Link</button>
-  <div id="output" style="margin-top:20px;"></div>
+<script>
+  function addPair() {
+    /* …your existing code… */
+  }
 
-  <script>
-    // Add a URL + Question pair
-    function addPair() {
-      const div = document.createElement('div');
-      div.className = 'pair';
-      div.innerHTML = `
-        <input type="text" placeholder="Page URL (e.g. https://example.com)" class="url">
-        <textarea placeholder="Question for this page" class="question"></textarea>
-      `;
-      document.getElementById('pairs').appendChild(div);
+  function generateLink() {
+    const urls = [], questions = [];
+    document.querySelectorAll('.pair').forEach(div => {
+      let u = div.querySelector('.url').value.trim();
+      if (!u) return; 
+      if (!u.match(/^https?:\/\//)) u = 'https://' + u;
+      urls.push(u);
+      questions.push(div.querySelector('.question').value.trim() || '');
+    });
+    if (!urls.length) {
+      alert('Add at least one URL.');
+      return;
     }
 
-    // Generate the viewer link
-    function generateLink() {
-      const urls = [], questions = [];
-      document.querySelectorAll('.pair').forEach(div => {
-        let u = div.querySelector('.url').value.trim();
-        if (!u) return;
-        if (!u.match(/^https?:\/\//)) u = 'https://' + u;
-        urls.push(u);
-        questions.push(div.querySelector('.question').value.trim() || '');
-      });
-      if (!urls.length) {
-        alert('Please add at least one URL.');
-        return;
-      }
-      const payload = { urls, questions };
-      const data = encodeURIComponent(JSON.stringify(payload));
-      const link = `${window.location.origin}${window.location.pathname.replace(/index\.html$/, 'viewer.html')}?data=${data}`;
-      document.getElementById('output').innerHTML = `
-        <h3>Your Session Link:</h3>
-        <a href="${link}" target="_blank">${link}</a>
-      `;
-    }
+    const payload = { urls, questions };
+    const data = encodeURIComponent(JSON.stringify(payload));
 
-    // Initialize with one pair
-    addPair();
-  </script>
-</body>
-</html>
+    // ASSUME viewer.html is in the same folder:
+    const link = `${window.location.origin}${window.location.pathname
+      .replace(/index\.html$/, '')}viewer.html?data=${data}`;
+
+    document.getElementById('output').innerHTML = `
+      <h3>Your Session Link:</h3>
+      <a href="${link}" target="_blank">${link}</a>
+    `;
+  }
+
+  // initialize…
+  addPair();
+</script>
