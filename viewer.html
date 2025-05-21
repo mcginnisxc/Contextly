@@ -38,7 +38,6 @@
     <h3>Session Summary</h3>
     <p id="sessionTitle"></p>
     <textarea id="outputBox" readonly></textarea>
-    <p><strong>View this summary again:</strong> <a id="reviewLink" href="#" target="_blank">Link will appear here</a></p>
     <p><a id="emailLink" href="#" target="_blank"><button>Send Answers by Email</button></a></p>
   </div>
 
@@ -135,25 +134,31 @@
 
     function showSummary() {
       document.getElementById("sessionTitle").innerText = name ? `Session: ${name}` : '';
-      const summaryText = questions.map((q, i) =>
-        `${q}\nAnswer: ${answers[i] || '(No answer provided)'}`
-      ).join('\n\n');
 
       const sessionResult = { name, urls, questions, answers, senderEmail };
       const encodedData = encodeURIComponent(JSON.stringify(sessionResult));
       sessionUrl = `viewer.html?data=${encodedData}`;
 
-      const mailtoBody = encodeURIComponent(
-        `Hi,\n\nI've completed the review session you shared. You can view my answers using the link below:\n\n${sessionUrl}\n\nLet me know if you'd like to discuss or if anything needs clarification.\n\nBest,\n`
-      );
+      const summaryText = questions.map((q, i) =>
+        `Question ${i + 1}: ${q}\nAnswer: ${answers[i] || '(No answer provided)'}`
+      ).join('\n\n');
+
+      const bodyText = `Hi,
+
+I've completed the review session you shared. Here's the summary:\n\n${summaryText}
+
+You can view the full session here:
+${sessionUrl}
+
+Best,`;
+
+      const mailtoBody = encodeURIComponent(bodyText);
 
       emailHref = senderEmail
-        ? `mailto:${senderEmail}?subject=Review session completed${name ? ': ' + encodeURIComponent(name) : ''}&body=${mailtoBody}`
+        ? `mailto:${senderEmail}?subject=${encodeURIComponent("Review session completed" + (name ? `: ${name}` : ''))}&body=${mailtoBody}`
         : '#';
 
       document.getElementById("outputBox").value = summaryText;
-      document.getElementById("reviewLink").href = sessionUrl;
-      document.getElementById("reviewLink").textContent = sessionUrl;
 
       if (senderEmail) {
         document.getElementById("emailLink").href = emailHref;
@@ -171,10 +176,9 @@
         <body style="font-family: sans-serif; padding: 20px;">
           <h3>All done!</h3>
           <p>Thanks for answering.</p>
-          <p><strong>Next steps:</strong></p>
+          <p><strong>Next step:</strong></p>
           <ul>
             <li><a href="${emailHref}" target="_blank">📧 Send answers via email</a></li>
-            <li><a href="${sessionUrl}" target="_blank">🔗 View your answers</a></li>
           </ul>
         </body>
         </html>
@@ -188,7 +192,6 @@
       showQuestion(index);
     }
 
-    // If answers already exist, show summary directly
     if (answers.some(a => a)) {
       document.getElementById("startBtn").style.display = "none";
       document.getElementById("status").innerText = "All done!";
