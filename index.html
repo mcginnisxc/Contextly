@@ -1,35 +1,71 @@
-<script>
-  function addPair() {
-    /* …your existing code… */
-  }
+<!DOCTYPE html>
+<html>
+<head>
+  <title>QTrail - Create a Session</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      max-width: 600px;
+      margin: auto;
+    }
+    input, textarea, button {
+      width: 100%;
+      margin: 10px 0;
+      padding: 10px;
+      box-sizing: border-box;
+    }
+    .url-block {
+      margin-bottom: 15px;
+      border-bottom: 1px solid #ccc;
+      padding-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h2>Create a Q&A Session</h2>
 
-  function generateLink() {
-    const urls = [], questions = [];
-    document.querySelectorAll('.pair').forEach(div => {
-      let u = div.querySelector('.url').value.trim();
-      if (!u) return; 
-      if (!u.match(/^https?:\/\//)) u = 'https://' + u;
-      urls.push(u);
-      questions.push(div.querySelector('.question').value.trim() || '');
-    });
-    if (!urls.length) {
-      alert('Add at least one URL.');
-      return;
+  <div id="url-list"></div>
+
+  <button onclick="addUrlBlock()">+ Add Page</button>
+  <button onclick="generateLink()">Generate Link</button>
+
+  <p id="output"></p>
+
+  <script>
+    function addUrlBlock() {
+      const div = document.createElement("div");
+      div.className = "url-block";
+      div.innerHTML = `
+        <input type="text" placeholder="Page URL (e.g. https://npr.org)" class="url" />
+        <textarea placeholder="Question for this page" class="question"></textarea>
+      `;
+      document.getElementById("url-list").appendChild(div);
     }
 
-    const payload = { urls, questions };
-    const data = encodeURIComponent(JSON.stringify(payload));
+    function generateLink() {
+      const urls = [...document.querySelectorAll(".url")].map(input => {
+        let url = input.value.trim();
+        if (!url.startsWith("http")) {
+          url = "https://" + url;
+        }
+        return url;
+      });
 
-    // ASSUME viewer.html is in the same folder:
-    const link = `${window.location.origin}${window.location.pathname
-      .replace(/index\.html$/, '')}viewer.html?data=${data}`;
+      const questions = [...document.querySelectorAll(".question")].map(input => input.value.trim());
 
-    document.getElementById('output').innerHTML = `
-      <h3>Your Session Link:</h3>
-      <a href="${link}" target="_blank">${link}</a>
-    `;
-  }
+      const session = { urls, questions };
+      const sessionStr = encodeURIComponent(JSON.stringify(session));
+      const link = `viewer.html?data=${sessionStr}`;
 
-  // initialize…
-  addPair();
-</script>
+      document.getElementById("output").innerHTML = `
+        <strong>Session Link:</strong><br>
+        <a href="${link}" target="_blank">${link}</a>
+      `;
+    }
+
+    // Start with one entry
+    addUrlBlock();
+  </script>
+</body>
+</html>
