@@ -51,8 +51,9 @@
     let answers = new Array(questions.length).fill('');
     let tabRef = null;
     let popupRef = null;
+
     let reviewLinkUrl = '';
-    let mailtoBody = '';
+    let emailHref = '';
 
     function renderPopup(htmlContent) {
       const blob = new Blob([htmlContent], { type: 'text/html' });
@@ -120,7 +121,7 @@
           } else {
             document.getElementById("status").innerText = "All done!";
             showSummary();
-            showDonePopup(); // after summary is built
+            showDonePopup(); // launch final popup
           }
         } else if (event.data.direction === "back") {
           if (index > 0) {
@@ -137,26 +138,24 @@
         `${q}\nAnswer: ${answers[i] || '(No answer provided)'}`
       ).join('\n\n');
 
-      const sessionResult = {
-        name,
-        urls,
-        questions,
-        answers
-      };
-
+      const sessionResult = { name, urls, questions, answers };
       const encodedData = encodeURIComponent(JSON.stringify(sessionResult));
       reviewLinkUrl = `review.html?data=${encodedData}`;
-      mailtoBody = encodeURIComponent(
+
+      const mailtoBody = encodeURIComponent(
         `Hi,\n\nI've completed the review session you shared. You can view my answers using the link below:\n\n${reviewLinkUrl}\n\nLet me know if you'd like to discuss or if anything needs clarification.\n\nBest,\n`
       );
+
+      emailHref = senderEmail
+        ? `mailto:${senderEmail}?subject=Review session completed${name ? ': ' + encodeURIComponent(name) : ''}&body=${mailtoBody}`
+        : '#';
 
       document.getElementById("outputBox").value = summaryText;
       document.getElementById("reviewLink").href = reviewLinkUrl;
       document.getElementById("reviewLink").textContent = reviewLinkUrl;
 
       if (senderEmail) {
-        const mailtoLink = `mailto:${senderEmail}?subject=Review session completed${name ? ': ' + encodeURIComponent(name) : ''}&body=${mailtoBody}`;
-        document.getElementById("emailLink").href = mailtoLink;
+        document.getElementById("emailLink").href = emailHref;
       } else {
         document.getElementById("emailLink").style.display = "none";
       }
@@ -165,24 +164,21 @@
     }
 
     function showDonePopup() {
-      const emailHref = senderEmail
-        ? `mailto:${senderEmail}?subject=Review session completed${name ? ': ' + encodeURIComponent(name) : ''}&body=${mailtoBody}`
-        : '#';
-
-      const doneHtml = `
+      const html = `
         <html>
         <head><title>Done</title></head>
         <body style="font-family: sans-serif; padding: 20px;">
           <h3>All done!</h3>
           <p>Thanks for answering.</p>
-          <p><strong>Click below to email your answers:</strong></p>
-          <a href="${emailHref}" target="_blank"><button>Send Answers via Email</button></a>
-          <p><a href="${reviewLinkUrl}" target="_blank">View your answers</a></p>
+          <p><strong>Next steps:</strong></p>
+          <ul>
+            <li><a href="${emailHref}" target="_blank">📧 Send answers via email</a></li>
+            <li><a href="${reviewLinkUrl}" target="_blank">🔗 View your answers</a></li>
+          </ul>
         </body>
         </html>
       `;
-
-      renderPopup(doneHtml);
+      renderPopup(html);
     }
 
     function startSession() {
