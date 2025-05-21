@@ -14,23 +14,9 @@
 
   <p id="status">
     Please click the button below to begin.<br>
-    <strong>Important:</strong> This tool opens tabs and popups.<br>
+    <strong>Important:</strong> This tool opens a tab and a popup.<br>
     Make sure your browser allows popups for this site.
   </p>
-
-  <h5>Need help enabling popups?</h5>
-  <ul>
-    <li><a href="https://support.google.com/chrome/answer/95472" target="_blank">Enable popups in Chrome</a></li>
-    <li><a href="https://support.apple.com/guide/safari/block-pop-ups-sfri40696/mac" target="_blank">Enable popups in Safari</a></li>
-    <li><a href="https://support.microsoft.com/en-us/microsoft-edge/block-pop-ups-in-microsoft-edge-4cad471d-2306-3d62-0d09-0503b69de831" target="_blank">Enable popups in Edge</a></li>
-  </ul>
-
-  <h4>How it works:</h4>
-  <ol>
-    <li>A new tab will open with the page you need to review</li>
-    <li>A popup will appear with a question about that page</li>
-    <li>Type your answer, click Next, and repeat</li>
-  </ol>
 
   <button id="startBtn" onclick="startSession()">Start Session</button>
 
@@ -38,8 +24,6 @@
     <h3>Session Summary</h3>
     <p id="sessionTitle"></p>
     <textarea id="outputBox" readonly></textarea>
-    <h4>JSON (for storage or review):</h4>
-    <textarea id="jsonExportBox" readonly style="width:100%; height:150px;"></textarea>
     <p><strong>Review Link:</strong> <a id="reviewLink" href="#" target="_blank"></a></p>
     <p><a id="emailLink" href="#" target="_blank"><button>Send Answers by Email</button></a></p>
   </div>
@@ -50,50 +34,76 @@
     const { name, urls, questions, senderEmail } = data;
 
     let index = 0;
-    let answers = [];
+    let answers = new Array(questions.length).fill('');
+    let tabRef = null;
+    let popupRef = null;
 
-    function openPopup(question, currentIndex) {
+    function renderPopup(htmlContent) {
+      const blob = new Blob([htmlContent], { type: 'text/html' });
+      const popupUrl = URL.createObjectURL(blob);
+
+      if (!popupRef || popupRef.closed) {
+        popupRef = window.open(popupUrl, 'QTrailPopup', 'width=450,height=350');
+      } else {
+        popupRef.location.href = popupUrl;
+      }
+    }
+
+    function showQuestion(indexToShow) {
+      const question = questions[indexToShow];
+      const answer = answers[indexToShow] || '';
+
       const popupHtml = `
         <html>
         <head><title>QTrail Question</title></head>
         <body style="font-family: sans-serif; padding: 20px;">
-          <h3>Question</h3>
+          <h3>Question ${indexToShow + 1} of ${questions.length}</h3>
           <p>${question}</p>
-          <textarea id="answerBox" style="width:100%; height:100px;"></textarea>
-          <br/>
-          <button onclick="submitAnswer()">Next</button>
+          <textarea id="answerBox" style="width:100%; height:100px;">${answer}</textarea><br/>
+          <button onclick="goBack()">Back</button>
+          <button onclick="goNext()">Next</button>
           <script>
-            function submitAnswer() {
+            function goBack() {
               const answer = document.getElementById('answerBox').value;
-              window.opener.postMessage({ type: 'next', answer: answer, index: ${currentIndex} }, '*');
-              window.close();
+              window.opener.postMessage({ type: 'nav', direction: 'back', answer: answer }, '*');
+            }
+            function goNext() {
+              const answer = document.getElementById('answerBox').value;
+              window.opener.postMessage({ type: 'nav', direction: 'next', answer: answer }, '*');
             }
           <\/script>
         </body>
         </html>
       `;
-      const blob = new Blob([popupHtml], { type: 'text/html' });
-      const popupUrl = URL.createObjectURL(blob);
-      window.open(popupUrl, 'QTrailPopup', 'width=400,height=300');
-    }
 
-    function nextStep() {
-      if (index >= urls.length) {
-        document.getElementById("status").innerText = "All done!";
-        showSummary();
-        return;
+      renderPopup(popupHtml);
+
+      if (!tabRef || tabRef.closed) {
+        tabRef = window.open(urls[indexToShow], '_blank');
+      } else {
+        tabRef.location.href = urls[indexToShow];
       }
-      const url = urls[index];
-      const question = questions[index];
-      openPopup(question, index);
-      window.open(url, '_blank');
-      index++;
     }
 
     window.addEventListener("message", (event) => {
-      if (event.data.type === "next") {
-        answers[event.data.index] = event.data.answer;
-        nextStep();
+      if (event.data.type === "nav") {
+        answers[index] = event.data.answer;
+
+        if (event.data.direction === "next") {
+          if (index < questions.length - 1) {
+            index++;
+            showQuestion(index);
+          } else {
+            document.getElementById("status").innerText = "All done!";
+            showSummary();
+            showDonePopup(); // ✅ show email summary prompt
+          }
+        } else if (event.data.direction === "back") {
+          if (index > 0) {
+            index--;
+            showQuestion(index);
+          }
+        }
       }
     });
 
@@ -112,15 +122,14 @@
 
       const encodedData = encodeURIComponent(JSON.stringify(sessionResult));
       const reviewLinkUrl = `review.html?data=${encodedData}`;
-      const jsonExport = JSON.stringify(sessionResult, null, 2);
 
       document.getElementById("outputBox").value = summaryText;
-      document.getElementById("jsonExportBox").value = jsonExport;
       document.getElementById("reviewLink").href = reviewLinkUrl;
       document.getElementById("reviewLink").textContent = reviewLinkUrl;
 
       if (senderEmail) {
-        const mailtoLink = `mailto:${senderEmail}?subject=Answers for ${encodeURIComponent(name || 'your session')}&body=Here is the review link:%0A${reviewLinkUrl}`;
+        const mailtoBody = encodeURIComponent(`Here’s the QTrail review link:\n${reviewLinkUrl}\n\nAnswers:\n\n${summaryText}`);
+        const mailtoLink = `mailto:${senderEmail}?subject=Answers for ${encodeURIComponent(name || 'your session')}&body=${mailtoBody}`;
         document.getElementById("emailLink").href = mailtoLink;
       } else {
         document.getElementById("emailLink").style.display = "none";
@@ -129,10 +138,42 @@
       document.getElementById("summary").style.display = 'block';
     }
 
+    function showDonePopup() {
+      const summaryText = questions.map((q, i) =>
+        `${q}\nAnswer: ${answers[i] || '(No answer provided)'}`
+      ).join('\n\n');
+
+      const encodedData = encodeURIComponent(JSON.stringify({
+        name,
+        urls,
+        questions,
+        answers
+      }));
+
+      const reviewLinkUrl = `review.html?data=${encodedData}`;
+      const mailtoBody = encodeURIComponent(`Here’s the QTrail review link:\n${reviewLinkUrl}\n\nAnswers:\n\n${summaryText}`);
+      const emailHref = senderEmail ? `mailto:${senderEmail}?subject=Answers for ${encodeURIComponent(name || 'your session')}&body=${mailtoBody}` : '#';
+
+      const doneHtml = `
+        <html>
+        <head><title>Done</title></head>
+        <body style="font-family: sans-serif; padding: 20px;">
+          <h3>All done!</h3>
+          <p>Thanks for answering.</p>
+          <p><strong>Click below to email your answers:</strong></p>
+          <a href="${emailHref}" target="_blank"><button>Send Answers via Email</button></a>
+          <p><a href="${reviewLinkUrl}" target="_blank">View your answers</a></p>
+        </body>
+        </html>
+      `;
+
+      renderPopup(doneHtml);
+    }
+
     function startSession() {
       document.getElementById("startBtn").style.display = "none";
       document.getElementById("status").innerText = "Session started...";
-      nextStep();
+      showQuestion(index);
     }
   </script>
 </body>
