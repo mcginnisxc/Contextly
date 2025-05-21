@@ -50,7 +50,6 @@
     let index = 0;
     let tabRef = null;
     let popupRef = null;
-    let sessionUrl = '';
     let emailHref = '';
 
     function renderPopup(htmlContent) {
@@ -135,22 +134,17 @@
     function showSummary() {
       document.getElementById("sessionTitle").innerText = name ? `Session: ${name}` : '';
 
+      const summaryText = questions.map((q, i) =>
+        `Q${i + 1}: ${q}\nA${i + 1}: ${answers[i] || '(No answer provided)'}`
+      ).join('\n\n');
+
       const sessionResult = { name, urls, questions, answers, senderEmail };
       const encodedData = encodeURIComponent(JSON.stringify(sessionResult));
-      sessionUrl = `viewer.html?data=${encodedData}`;
-
-      const summaryText = questions.map((q, i) =>
-        `Question ${i + 1}: ${q}\nAnswer: ${answers[i] || '(No answer provided)'}`
-      ).join('\n\n');
+      const sessionLink = `${window.location.origin}${window.location.pathname}?data=${encodedData}`;
 
       const bodyText = `Hi,
 
-I've completed the review session you shared. Here's the summary:\n\n${summaryText}
-
-You can view the full session here:
-${sessionUrl}
-
-Best,`;
+I've completed the review session you shared. Here's a summary of my responses:\n\n${summaryText}\n\nYou can also view the full session here:\n${sessionLink}\n\nBest,`;
 
       const mailtoBody = encodeURIComponent(bodyText);
 
@@ -162,8 +156,9 @@ Best,`;
 
       if (senderEmail) {
         document.getElementById("emailLink").href = emailHref;
+        document.getElementById("emailLink").style.display = 'inline';
       } else {
-        document.getElementById("emailLink").style.display = "none";
+        document.getElementById("emailLink").style.display = 'none';
       }
 
       document.getElementById("summary").style.display = 'block';
