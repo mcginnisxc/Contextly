@@ -38,7 +38,7 @@
     <h3>Session Summary</h3>
     <p id="sessionTitle"></p>
     <textarea id="outputBox" readonly></textarea>
-    <p><strong>Review Link:</strong> <a id="reviewLink" href="#" target="_blank"></a></p>
+    <p><strong>View this summary page later:</strong> <a id="reviewLink" href="#" target="_blank">Loading...</a></p>
     <p><a id="emailLink" href="#" target="_blank"><button>Send Answers by Email</button></a></p>
   </div>
 
@@ -51,7 +51,7 @@
     let index = 0;
     let tabRef = null;
     let popupRef = null;
-    let summaryUrl = '';
+    let sessionUrl = '';
     let emailHref = '';
 
     function renderPopup(htmlContent) {
@@ -141,10 +141,10 @@
 
       const sessionResult = { name, urls, questions, answers, senderEmail };
       const encodedData = encodeURIComponent(JSON.stringify(sessionResult));
-      summaryUrl = `viewer.html?data=${encodedData}`;
+      sessionUrl = `viewer.html?data=${encodedData}`;
 
       const mailtoBody = encodeURIComponent(
-        `Hi,\n\nI've completed the review session you shared. You can view my answers using the link below:\n\n${summaryUrl}\n\nLet me know if you'd like to discuss or if anything needs clarification.\n\nBest,\n`
+        `Hi,\n\nI've completed the review session you shared. You can view my answers using the link below:\n\n${sessionUrl}\n\nLet me know if you'd like to discuss or if anything needs clarification.\n\nBest,\n`
       );
 
       emailHref = senderEmail
@@ -152,8 +152,8 @@
         : '#';
 
       document.getElementById("outputBox").value = summaryText;
-      document.getElementById("reviewLink").href = summaryUrl;
-      document.getElementById("reviewLink").textContent = summaryUrl;
+      document.getElementById("reviewLink").href = sessionUrl;
+      document.getElementById("reviewLink").textContent = sessionUrl;
 
       if (senderEmail) {
         document.getElementById("emailLink").href = emailHref;
@@ -174,7 +174,7 @@
           <p><strong>Next steps:</strong></p>
           <ul>
             <li><a href="${emailHref}" target="_blank">📧 Send answers via email</a></li>
-            <li><a href="${summaryUrl}" target="_blank">🔗 View your answers</a></li>
+            <li><a href="${sessionUrl}" target="_blank">🔗 View your answers</a></li>
           </ul>
         </body>
         </html>
@@ -188,10 +188,10 @@
       showQuestion(index);
     }
 
-    // Auto-show summary if answers are pre-filled
+    // Auto-show summary if answers already exist
     if (answers.some(a => a)) {
-      startBtn.style.display = 'none';
-      document.getElementById("status").innerText = "Session summary loaded.";
+      document.getElementById("startBtn").style.display = "none";
+      document.getElementById("status").innerText = "All done!";
       showSummary();
     }
   </script>
