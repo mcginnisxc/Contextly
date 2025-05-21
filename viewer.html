@@ -38,7 +38,7 @@
     <h3>Session Summary</h3>
     <p id="sessionTitle"></p>
     <textarea id="outputBox" readonly></textarea>
-    <p><strong>View this summary page later:</strong> <a id="reviewLink" href="#" target="_blank">Loading...</a></p>
+    <p><strong>View this summary again:</strong> <a id="reviewLink" href="#" target="_blank">Link will appear here</a></p>
     <p><a id="emailLink" href="#" target="_blank"><button>Send Answers by Email</button></a></p>
   </div>
 
@@ -188,7 +188,7 @@
       showQuestion(index);
     }
 
-    // Auto-show summary if answers already exist
+    // If answers already exist, show summary directly
     if (answers.some(a => a)) {
       document.getElementById("startBtn").style.display = "none";
       document.getElementById("status").innerText = "All done!";
