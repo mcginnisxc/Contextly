@@ -72,7 +72,10 @@
 
       const popupHtml = `
         <html>
-        <head><title>QTrail Question</title></head>
+        <head>
+          <meta charset="UTF-8">
+          <title>QTrail Question</title>
+        </head>
         <body style="font-family: sans-serif; padding: 20px;">
           <h3>Question ${indexToShow + 1} of ${questions.length}</h3>
           <p>${question}</p>
@@ -121,7 +124,7 @@
           } else {
             document.getElementById("status").innerText = "All done!";
             showSummary();
-            showDonePopup(); // launch final popup
+            showDonePopup();
           }
         } else if (event.data.direction === "back") {
           if (index > 0) {
@@ -166,7 +169,10 @@
     function showDonePopup() {
       const html = `
         <html>
-        <head><title>Done</title></head>
+        <head>
+          <meta charset="UTF-8">
+          <title>Done</title>
+        </head>
         <body style="font-family: sans-serif; padding: 20px;">
           <h3>All done!</h3>
           <p>Thanks for answering.</p>
