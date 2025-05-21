@@ -4,9 +4,8 @@
   <title>QTrail Viewer</title>
   <style>
     body { font-family: Arial, sans-serif; padding: 20px; }
-    button { padding: 10px 15px; margin: 10px 5px; }
-    #summary { display: none; }
-    #startBtn { padding: 12px 20px; font-size: 16px; }
+    button { padding: 10px 15px; margin: 10px 5px; font-size: 16px; }
+    #summary { display: none; margin-top: 40px; }
     textarea { width: 100%; height: 200px; font-family: monospace; }
   </style>
 </head>
@@ -19,91 +18,117 @@
     <h3>Session Summary</h3>
     <p>Copy and paste the answers below:</p>
     <textarea id="outputBox" readonly></textarea>
-    <h4>JSON (for storage or review):</h4>
-    <textarea id="jsonExportBox" readonly style="width:100%; height:150px;"></textarea>
-    <p><strong>Review Link:</strong> <a id="reviewLink" href="#" target="_blank"></a></p>
   </div>
 
   <script>
+    // Parse session data
     const query = new URLSearchParams(window.location.search);
     const data = JSON.parse(decodeURIComponent(query.get("data")));
     const urls = data.urls;
     const questions = data.questions;
 
+    // State
     let index = 0;
-    let answers = [];
+    let answers = new Array(questions.length).fill('');
+    let tabRef = null;
+    let popupRef = null;
 
-    function openPopup(question, currentIndex) {
+    // Show question in a persistent popup and navigate the tab
+    function showQuestion(i) {
+      // Open or navigate the content tab
+      if (!tabRef || tabRef.closed) {
+        tabRef = window.open(urls[i], '_blank');
+      } else {
+        tabRef.location.href = urls[i];
+      }
+
+      // Build popup HTML with Back / Reload / Next
       const popupHtml = `
         <html>
-        <head><title>QTrail Question</title></head>
-        <body style="font-family: sans-serif; padding: 20px;">
-          <h3>Question</h3>
-          <p>${question}</p>
-          <textarea id="answerBox" style="width:100%; height:100px;"></textarea>
-          <br/>
-          <button onclick="submitAnswer()">Next</button>
+        <head>
+          <meta charset="UTF-8">
+          <title>QTrail Question</title>
+        </head>
+        <body style="font-family: sans-serif; padding:20px;">
+          <h3>Question ${i+1} of ${questions.length}</h3>
+          <p>${questions[i]}</p>
+          <textarea id="answerBox" style="width:100%; height:100px;">${answers[i] || ''}</textarea><br/>
+          <button onclick="nav('back')">Back</button>
+          <button onclick="reloadPage()">Reload Page</button>
+          <button onclick="nav('next')">Next</button>
           <script>
-            function submitAnswer() {
+            function nav(dir) {
               const answer = document.getElementById('answerBox').value;
-              window.opener.postMessage({ type: 'next', answer: answer, index: ${currentIndex} }, '*');
-              window.close();
+              window.opener.postMessage(
+                { type:'nav', direction: dir, answer: answer },
+                '*'
+              );
+              if(dir==='next' && ${i} === ${questions.length} - 1) {
+                // On final Next, don't close immediately—parent will close
+              } else {
+                window.close();
+              }
+            }
+            function reloadPage() {
+              // Refresh the content tab
+              if(window.opener && window.opener.tabRef && !window.opener.tabRef.closed) {
+                window.opener.tabRef.location.reload();
+              } else if(window.opener) {
+                window.opener.location.reload();
+              }
             }
           <\/script>
         </body>
         </html>
       `;
-      const blob = new Blob([popupHtml], { type: 'text/html' });
-      const popupUrl = URL.createObjectURL(blob);
-      window.open(popupUrl, 'QTrailPopup', 'width=400,height=300');
-    }
 
-    function nextStep() {
-      if (index >= urls.length) {
-        document.getElementById("status").innerText = "All done!";
-        showSummary();
-        return;
+      const blob = new Blob([popupHtml], { type: 'text/html;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+
+      if (!popupRef || popupRef.closed) {
+        popupRef = window.open(url, 'QTrailPopup', 'width=450,height=350');
+      } else {
+        popupRef.location.href = url;
       }
-      const url = urls[index];
-      const question = questions[index];
-      openPopup(question, index);
-      window.open(url, '_blank');
-      index++;
     }
 
-    window.addEventListener("message", (event) => {
-      if (event.data.type === "next") {
-        answers[event.data.index] = event.data.answer;
-        nextStep();
+    // Listen for Back/Next messages
+    window.addEventListener('message', event => {
+      if (event.data.type === 'nav') {
+        answers[index] = event.data.answer;
+        if (event.data.direction === 'next') {
+          if (index < questions.length - 1) {
+            index++;
+            showQuestion(index);
+          } else {
+            // Completed all
+            if (popupRef && !popupRef.closed) popupRef.close();
+            document.getElementById('status').innerText = 'All done!';
+            showSummary();
+          }
+        } else if (event.data.direction === 'back') {
+          if (index > 0) {
+            index--;
+            showQuestion(index);
+          }
+        }
       }
     });
 
+    // Display summary on page
     function showSummary() {
       const summaryText = questions.map((q, i) =>
-        `Q${i + 1}: ${q}\nA${i + 1}: ${answers[i] || ''}`
+        `${q}\nAnswer: ${answers[i] || '(No answer provided)'}`
       ).join('\n\n');
-
-      const sessionResult = {
-        urls,
-        questions,
-        answers
-      };
-
-      const encodedData = encodeURIComponent(JSON.stringify(sessionResult));
-      const reviewLinkUrl = `review.html?data=${encodedData}`;
-      const jsonExport = JSON.stringify(sessionResult, null, 2);
-
-      document.getElementById("outputBox").value = summaryText;
-      document.getElementById("jsonExportBox").value = jsonExport;
-      document.getElementById("reviewLink").href = reviewLinkUrl;
-      document.getElementById("reviewLink").textContent = reviewLinkUrl;
-      document.getElementById("summary").style.display = 'block';
+      document.getElementById('outputBox').value = summaryText;
+      document.getElementById('summary').style.display = 'block';
     }
 
+    // Kick off the Q&A flow
     function startSession() {
-      document.getElementById("startBtn").style.display = "none";
-      document.getElementById("status").innerText = "Session started...";
-      nextStep();
+      document.getElementById('startBtn').style.display = 'none';
+      document.getElementById('status').innerText = 'Session started...';
+      showQuestion(index);
     }
   </script>
 </body>
