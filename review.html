@@ -4,100 +4,33 @@
   <title>QTrail Review</title>
   <style>
     body { font-family: Arial, sans-serif; padding: 20px; }
-    button { padding: 10px 15px; margin: 10px 5px; font-size: 16px; }
-    #summary { display: none; margin-top: 40px; }
-    textarea { width: 100%; height: 200px; font-family: monospace; }
+    h3 { margin-top: 30px; }
+    pre { background: #f4f4f4; padding: 10px; white-space: pre-wrap; word-wrap: break-word; }
   </style>
 </head>
 <body>
-  <h2>Reviewing Submitted Answers</h2>
-
-  <p id="status">
-    Click below to begin reviewing.<br>
-    <strong>Note:</strong> This tool opens tabs and popups—please allow them in your browser.
-  </p>
-
-  <h5>Need help enabling popups?</h5>
-  <ul>
-    <li><a href="https://support.google.com/chrome/answer/95472" target="_blank">Enable popups in Chrome</a></li>
-    <li><a href="https://support.apple.com/guide/safari/block-pop-ups-sfri40696/mac" target="_blank">Enable popups in Safari</a></li>
-    <li><a href="https://support.microsoft.com/en-us/microsoft-edge/block-pop-ups-in-microsoft-edge-4cad471d-2306-3d62-0d09-0503b69de831" target="_blank">Enable popups in Edge</a></li>
-  </ul>
-
-  <h4>How to review:</h4>
-  <ol>
-    <li>Each original page will open in a new tab</li>
-    <li>A popup will show the question and the answer</li>
-    <li>Click Next to move through each response</li>
-  </ol>
-
-  <button onclick="startReview()">Start Review</button>
-
-  <div id="summary">
-    <h3>Final Summary</h3>
-    <textarea id="outputBox" readonly></textarea>
-  </div>
+  <h2>Session Review</h2>
+  <div id="output"></div>
 
   <script>
     const query = new URLSearchParams(window.location.search);
     const data = JSON.parse(decodeURIComponent(query.get("data")));
-    const urls = data.urls;
-    const questions = data.questions;
-    const answers = data.answers;
 
-    let index = 0;
+    const { name, urls, questions, answers } = data;
+    const container = document.getElementById("output");
 
-    function openPopup(question, answer) {
-      const popupHtml = `
-        <html>
-        <head><title>Review Response</title></head>
-        <body style="font-family: sans-serif; padding: 20px;">
-          <h3>Question</h3>
-          <p>${question}</p>
-          <h4>Answer</h4>
-          <p>${answer || "(No answer provided)"}</p>
-          <button onclick="window.opener.postMessage('next', '*'); window.close();">Next</button>
-        </body>
-        </html>
-      `;
-      const blob = new Blob([popupHtml], { type: 'text/html' });
-      const popupUrl = URL.createObjectURL(blob);
-      window.open(popupUrl, 'QTrailReviewPopup', 'width=400,height=300');
+    if (name) {
+      const h3 = document.createElement("h3");
+      h3.textContent = name;
+      container.appendChild(h3);
     }
 
-    function nextStep() {
-      if (index >= urls.length) {
-        document.getElementById("status").innerText = "Review complete.";
-        showSummary();
-        return;
-      }
-      const url = urls[index];
-      const question = questions[index];
-      const answer = answers[index];
-      openPopup(question, answer);
-      window.open(url, '_blank');
-      index++;
-    }
-
-    window.addEventListener("message", (event) => {
-      if (event.data === "next") {
-        nextStep();
-      }
+    questions.forEach((q, i) => {
+      const block = document.createElement("div");
+      block.innerHTML = `<strong>Q${i + 1}:</strong> ${q}<br><strong>A${i + 1}:</strong> ${answers?.[i] || '(No answer provided)'}`;
+      block.style.marginBottom = "20px";
+      container.appendChild(block);
     });
-
-    function startReview() {
-      document.querySelector("button").style.display = "none";
-      document.getElementById("status").innerText = "Review started...";
-      nextStep();
-    }
-
-    function showSummary() {
-      const summaryText = questions.map((q, i) =>
-        `${q}\nAnswer: ${answers[i] || '(No answer provided)'}`
-      ).join('\n\n');
-      document.getElementById("outputBox").value = summaryText;
-      document.getElementById("summary").style.display = 'block';
-    }
   </script>
 </body>
 </html>

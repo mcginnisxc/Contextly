@@ -38,7 +38,6 @@
     <h3>Session Summary</h3>
     <p id="sessionTitle"></p>
     <textarea id="outputBox" readonly></textarea>
-    <p><strong>Review Link:</strong> <a id="reviewLink" href="#" target="_blank"></a></p>
     <p><a id="emailLink" href="#" target="_blank"><button>Send Answers by Email</button></a></p>
   </div>
 
@@ -46,18 +45,16 @@
     const query = new URLSearchParams(window.location.search);
     const data = JSON.parse(decodeURIComponent(query.get("data")));
     const { name, urls, questions, senderEmail } = data;
+    let answers = data.answers || new Array(questions.length).fill('');
 
     let index = 0;
-    let answers = new Array(questions.length).fill('');
     let tabRef = null;
     let popupRef = null;
-    let reviewLinkUrl = '';
-    let mailtoBody = '';
+    let emailHref = '';
 
     function renderPopup(htmlContent) {
-      const blob = new Blob([htmlContent], { type: 'text/html' });
+      const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
       const popupUrl = URL.createObjectURL(blob);
-
       if (!popupRef || popupRef.closed) {
         popupRef = window.open(popupUrl, 'QTrailPopup', 'width=450,height=350');
       } else {
@@ -71,7 +68,10 @@
 
       const popupHtml = `
         <html>
-        <head><title>QTrail Question</title></head>
+        <head>
+          <meta charset="UTF-8">
+          <title>QTrail Question</title>
+        </head>
         <body style="font-family: sans-serif; padding: 20px;">
           <h3>Question ${indexToShow + 1} of ${questions.length}</h3>
           <p>${question}</p>
@@ -120,7 +120,7 @@
           } else {
             document.getElementById("status").innerText = "All done!";
             showSummary();
-            showDonePopup(); // after summary is built
+            showDonePopup();
           }
         } else if (event.data.direction === "back") {
           if (index > 0) {
@@ -133,62 +133,64 @@
 
     function showSummary() {
       document.getElementById("sessionTitle").innerText = name ? `Session: ${name}` : '';
+
       const summaryText = questions.map((q, i) =>
-        `${q}\nAnswer: ${answers[i] || '(No answer provided)'}`
+        `Q${i + 1}: ${q}\nA${i + 1}: ${answers[i] || '(No answer provided)'}`
       ).join('\n\n');
 
-      const sessionResult = {
-        name,
-        urls,
-        questions,
-        answers
-      };
-
+      const sessionResult = { name, urls, questions, answers, senderEmail };
       const encodedData = encodeURIComponent(JSON.stringify(sessionResult));
-      reviewLinkUrl = `review.html?data=${encodedData}`;
-      mailtoBody = encodeURIComponent(
-        `Hi,\n\nI've completed the review session you shared. You can view my answers using the link below:\n\n${reviewLinkUrl}\n\nLet me know if you'd like to discuss or if anything needs clarification.\n\nBest,\n`
-      );
+      const sessionLink = `${window.location.origin}${window.location.pathname}?data=${encodedData}`;
+
+      const bodyText = `Hi,
+
+I've completed the review session you shared. Here's a summary of my responses:\n\n${summaryText}\n\nYou can also view the full session here:\n${sessionLink}\n\nBest,`;
+
+      const mailtoBody = encodeURIComponent(bodyText);
+
+      emailHref = senderEmail
+        ? `mailto:${senderEmail}?subject=${encodeURIComponent("Review session completed" + (name ? `: ${name}` : ''))}&body=${mailtoBody}`
+        : '#';
 
       document.getElementById("outputBox").value = summaryText;
-      document.getElementById("reviewLink").href = reviewLinkUrl;
-      document.getElementById("reviewLink").textContent = reviewLinkUrl;
 
       if (senderEmail) {
-        const mailtoLink = `mailto:${senderEmail}?subject=Review session completed${name ? ': ' + encodeURIComponent(name) : ''}&body=${mailtoBody}`;
-        document.getElementById("emailLink").href = mailtoLink;
+        document.getElementById("emailLink").href = emailHref;
+        document.getElementById("emailLink").style.display = 'inline';
       } else {
-        document.getElementById("emailLink").style.display = "none";
+        document.getElementById("emailLink").style.display = 'none';
       }
 
       document.getElementById("summary").style.display = 'block';
     }
 
     function showDonePopup() {
-      const emailHref = senderEmail
-        ? `mailto:${senderEmail}?subject=Review session completed${name ? ': ' + encodeURIComponent(name) : ''}&body=${mailtoBody}`
-        : '#';
-
-      const doneHtml = `
+      const html = `
         <html>
-        <head><title>Done</title></head>
+        <head><meta charset="UTF-8"><title>Done</title></head>
         <body style="font-family: sans-serif; padding: 20px;">
           <h3>All done!</h3>
           <p>Thanks for answering.</p>
-          <p><strong>Click below to email your answers:</strong></p>
-          <a href="${emailHref}" target="_blank"><button>Send Answers via Email</button></a>
-          <p><a href="${reviewLinkUrl}" target="_blank">View your answers</a></p>
+          <p><strong>Next step:</strong></p>
+          <ul>
+            <li><a href="${emailHref}" target="_blank">📧 Send answers via email</a></li>
+          </ul>
         </body>
         </html>
       `;
-
-      renderPopup(doneHtml);
+      renderPopup(html);
     }
 
     function startSession() {
       document.getElementById("startBtn").style.display = "none";
       document.getElementById("status").innerText = "Session started...";
       showQuestion(index);
+    }
+
+    if (answers.some(a => a)) {
+      document.getElementById("startBtn").style.display = "none";
+      document.getElementById("status").innerText = "All done!";
+      showSummary();
     }
   </script>
 </body>
