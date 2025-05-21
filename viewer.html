@@ -18,6 +18,20 @@
     Make sure your browser allows popups for this site.
   </p>
 
+  <h5>Need help enabling popups?</h5>
+  <ul>
+    <li><a href="https://support.google.com/chrome/answer/95472" target="_blank">Enable popups in Chrome</a></li>
+    <li><a href="https://support.apple.com/guide/safari/block-pop-ups-sfri40696/mac" target="_blank">Enable popups in Safari</a></li>
+    <li><a href="https://support.microsoft.com/en-us/microsoft-edge/block-pop-ups-in-microsoft-edge-4cad471d-2306-3d62-0d09-0503b69de831" target="_blank">Enable popups in Edge</a></li>
+  </ul>
+
+  <h4>How it works:</h4>
+  <ol>
+    <li>A single browser tab will show the pages to review</li>
+    <li>A popup will show questions (with back/next navigation)</li>
+    <li>Your answers will be saved as you go</li>
+  </ol>
+
   <button id="startBtn" onclick="startSession()">Start Session</button>
 
   <div id="summary">
@@ -37,6 +51,7 @@
     let answers = new Array(questions.length).fill('');
     let tabRef = null;
     let popupRef = null;
+    let reviewLinkUrl = '';
 
     function renderPopup(htmlContent) {
       const blob = new Blob([htmlContent], { type: 'text/html' });
@@ -96,7 +111,7 @@
           } else {
             document.getElementById("status").innerText = "All done!";
             showSummary();
-            showDonePopup(); // ✅ show email summary prompt
+            showDonePopup();
           }
         } else if (event.data.direction === "back") {
           if (index > 0) {
@@ -121,15 +136,17 @@
       };
 
       const encodedData = encodeURIComponent(JSON.stringify(sessionResult));
-      const reviewLinkUrl = `review.html?data=${encodedData}`;
+      reviewLinkUrl = `review.html?data=${encodedData}`;
 
       document.getElementById("outputBox").value = summaryText;
       document.getElementById("reviewLink").href = reviewLinkUrl;
       document.getElementById("reviewLink").textContent = reviewLinkUrl;
 
       if (senderEmail) {
-        const mailtoBody = encodeURIComponent(`Here’s the QTrail review link:\n${reviewLinkUrl}\n\nAnswers:\n\n${summaryText}`);
-        const mailtoLink = `mailto:${senderEmail}?subject=Answers for ${encodeURIComponent(name || 'your session')}&body=${mailtoBody}`;
+        const mailtoBody = encodeURIComponent(
+          `Hi,\n\nI've completed the review session you shared. You can view my answers using the link below:\n\n${reviewLinkUrl}\n\nLet me know if you'd like to discuss or if anything needs clarification.\n\nBest,\n`
+        );
+        const mailtoLink = `mailto:${senderEmail}?subject=Review session completed${name ? ': ' + encodeURIComponent(name) : ''}&body=${mailtoBody}`;
         document.getElementById("emailLink").href = mailtoLink;
       } else {
         document.getElementById("emailLink").style.display = "none";
@@ -139,20 +156,12 @@
     }
 
     function showDonePopup() {
-      const summaryText = questions.map((q, i) =>
-        `${q}\nAnswer: ${answers[i] || '(No answer provided)'}`
-      ).join('\n\n');
-
-      const encodedData = encodeURIComponent(JSON.stringify({
-        name,
-        urls,
-        questions,
-        answers
-      }));
-
-      const reviewLinkUrl = `review.html?data=${encodedData}`;
-      const mailtoBody = encodeURIComponent(`Here’s the QTrail review link:\n${reviewLinkUrl}\n\nAnswers:\n\n${summaryText}`);
-      const emailHref = senderEmail ? `mailto:${senderEmail}?subject=Answers for ${encodeURIComponent(name || 'your session')}&body=${mailtoBody}` : '#';
+      const mailtoBody = encodeURIComponent(
+        `Hi,\n\nI've completed the review session you shared. You can view my answers using the link below:\n\n${reviewLinkUrl}\n\nLet me know if you'd like to discuss or if anything needs clarification.\n\nBest,\n`
+      );
+      const emailHref = senderEmail
+        ? `mailto:${senderEmail}?subject=Review session completed${name ? ': ' + encodeURIComponent(name) : ''}&body=${mailtoBody}`
+        : '#';
 
       const doneHtml = `
         <html>
