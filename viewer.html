@@ -52,7 +52,7 @@
     let tabRef = null;
     let popupRef = null;
 
-    let reviewLinkUrl = '';
+    let sessionLinkUrl = window.location.href;
     let emailHref = '';
 
     function renderPopup(htmlContent) {
@@ -141,12 +141,8 @@
         `${q}\nAnswer: ${answers[i] || '(No answer provided)'}`
       ).join('\n\n');
 
-      const sessionResult = { name, urls, questions, answers };
-      const encodedData = encodeURIComponent(JSON.stringify(sessionResult));
-      reviewLinkUrl = `review.html?data=${encodedData}`;
-
       const mailtoBody = encodeURIComponent(
-        `Hi,\n\nI've completed the review session you shared. You can view my answers using the link below:\n\n${reviewLinkUrl}\n\nLet me know if you'd like to discuss or if anything needs clarification.\n\nBest,\n`
+        `Hi,\n\nI've completed the review session you shared. You can view my answers using the link below:\n\n${sessionLinkUrl}\n\nLet me know if you'd like to discuss or if anything needs clarification.\n\nBest,\n`
       );
 
       emailHref = senderEmail
@@ -154,8 +150,8 @@
         : '#';
 
       document.getElementById("outputBox").value = summaryText;
-      document.getElementById("reviewLink").href = reviewLinkUrl;
-      document.getElementById("reviewLink").textContent = reviewLinkUrl;
+      document.getElementById("reviewLink").href = sessionLinkUrl;
+      document.getElementById("reviewLink").textContent = sessionLinkUrl;
 
       if (senderEmail) {
         document.getElementById("emailLink").href = emailHref;
@@ -179,7 +175,7 @@
           <p><strong>Next steps:</strong></p>
           <ul>
             <li><a href="${emailHref}" target="_blank">📧 Send answers via email</a></li>
-            <li><a href="${reviewLinkUrl}" target="_blank">🔗 View your answers</a></li>
+            <li><a href="${sessionLinkUrl}" target="_blank">🔗 View your answers</a></li>
           </ul>
         </body>
         </html>
