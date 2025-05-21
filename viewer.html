@@ -4,15 +4,34 @@
   <title>QTrail Viewer</title>
   <style>
     body { font-family: Arial, sans-serif; padding: 20px; }
-    button { padding: 10px 15px; margin: 10px 5px; }
-    #summary { display: none; }
-    #startBtn { padding: 12px 20px; font-size: 16px; }
+    button { padding: 10px 15px; margin: 10px 5px; font-size: 16px; }
+    #summary { display: none; margin-top: 40px; }
     textarea { width: 100%; height: 200px; font-family: monospace; }
   </style>
 </head>
 <body>
   <h2>Launching your Q&A session...</h2>
-  <p id="status">Click below to begin.</p>
+
+  <p id="status">
+    Please click the button below to begin.<br>
+    <strong>Important:</strong> This tool opens tabs and popups.<br>
+    Make sure your browser allows popups for this site.
+  </p>
+
+  <h5>Need help enabling popups?</h5>
+  <ul>
+    <li><a href="https://support.google.com/chrome/answer/95472" target="_blank">Enable popups in Chrome</a></li>
+    <li><a href="https://support.apple.com/guide/safari/block-pop-ups-sfri40696/mac" target="_blank">Enable popups in Safari</a></li>
+    <li><a href="https://support.microsoft.com/en-us/microsoft-edge/block-pop-ups-in-microsoft-edge-4cad471d-2306-3d62-0d09-0503b69de831" target="_blank">Enable popups in Edge</a></li>
+  </ul>
+
+  <h4>How it works:</h4>
+  <ol>
+    <li>A new tab will open with the page you need to review</li>
+    <li>A popup will appear with a question about that page</li>
+    <li>Type your answer, click Next, and repeat</li>
+  </ol>
+
   <button id="startBtn" onclick="startSession()">Start Session</button>
 
   <div id="summary">
@@ -80,7 +99,7 @@
 
     function showSummary() {
       const summaryText = questions.map((q, i) =>
-        `Q${i + 1}: ${q}\nA${i + 1}: ${answers[i] || ''}`
+        `${q}\nAnswer: ${answers[i] || '(No answer provided)'}`
       ).join('\n\n');
 
       const sessionResult = {
