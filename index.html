@@ -25,6 +25,9 @@
 <body>
   <h2>Create a Q&A Session</h2>
 
+  <input type="text" id="sessionName" placeholder="Optional session name (e.g. Homepage QA Review)">
+  <input type="email" id="senderEmail" placeholder="Your email (to send answers back)" />
+
   <div id="url-list"></div>
 
   <button onclick="addUrlBlock()">+ Add Page</button>
@@ -53,8 +56,10 @@
       });
 
       const questions = [...document.querySelectorAll(".question")].map(input => input.value.trim());
+      const name = document.getElementById("sessionName").value.trim();
+      const senderEmail = document.getElementById("senderEmail").value.trim();
 
-      const session = { urls, questions };
+      const session = { name, urls, questions, senderEmail };
       const sessionStr = encodeURIComponent(JSON.stringify(session));
       const link = `viewer.html?data=${sessionStr}`;
 
@@ -64,7 +69,6 @@
       `;
     }
 
-    // Start with one entry
     addUrlBlock();
   </script>
 </body>
