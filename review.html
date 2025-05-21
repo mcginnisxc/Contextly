@@ -4,33 +4,81 @@
   <title>QTrail Review</title>
   <style>
     body { font-family: Arial, sans-serif; padding: 20px; }
-    h3 { margin-top: 30px; }
-    pre { background: #f4f4f4; padding: 10px; white-space: pre-wrap; word-wrap: break-word; }
+    #summary { display: none; }
+    button { padding: 10px 15px; margin: 10px 5px; }
+    textarea { width: 100%; height: 200px; font-family: monospace; }
   </style>
 </head>
 <body>
-  <h2>Session Review</h2>
-  <div id="output"></div>
+  <h2>Reviewing Submitted Answers</h2>
+  <p id="status">Click below to begin.</p>
+  <button onclick="startReview()">Start Review</button>
+
+  <div id="summary">
+    <h3>Final Summary</h3>
+    <textarea id="outputBox" readonly></textarea>
+  </div>
 
   <script>
     const query = new URLSearchParams(window.location.search);
     const data = JSON.parse(decodeURIComponent(query.get("data")));
+    const urls = data.urls;
+    const questions = data.questions;
+    const answers = data.answers;
 
-    const { name, urls, questions, answers } = data;
-    const container = document.getElementById("output");
+    let index = 0;
 
-    if (name) {
-      const h3 = document.createElement("h3");
-      h3.textContent = name;
-      container.appendChild(h3);
+    function openPopup(question, answer) {
+      const popupHtml = `
+        <html>
+        <head><title>Review Response</title></head>
+        <body style="font-family: sans-serif; padding: 20px;">
+          <h3>Question</h3>
+          <p>${question}</p>
+          <h4>Answer</h4>
+          <p>${answer || "(No answer provided)"}</p>
+          <button onclick="window.opener.postMessage('next', '*'); window.close();">Next</button>
+        </body>
+        </html>
+      `;
+      const blob = new Blob([popupHtml], { type: 'text/html' });
+      const popupUrl = URL.createObjectURL(blob);
+      window.open(popupUrl, 'QTrailReviewPopup', 'width=400,height=300');
     }
 
-    questions.forEach((q, i) => {
-      const block = document.createElement("div");
-      block.innerHTML = `<strong>Q${i + 1}:</strong> ${q}<br><strong>A${i + 1}:</strong> ${answers?.[i] || '(No answer provided)'}`;
-      block.style.marginBottom = "20px";
-      container.appendChild(block);
+    function nextStep() {
+      if (index >= urls.length) {
+        document.getElementById("status").innerText = "Review complete.";
+        showSummary();
+        return;
+      }
+      const url = urls[index];
+      const question = questions[index];
+      const answer = answers[index];
+      openPopup(question, answer);
+      window.open(url, '_blank');
+      index++;
+    }
+
+    window.addEventListener("message", (event) => {
+      if (event.data === "next") {
+        nextStep();
+      }
     });
+
+    function startReview() {
+      document.querySelector("button").style.display = "none";
+      document.getElementById("status").innerText = "Review started...";
+      nextStep();
+    }
+
+    function showSummary() {
+      const summaryText = questions.map((q, i) =>
+        `Q${i + 1}: ${q}\nA${i + 1}: ${answers[i] || ''}`
+      ).join('\n\n');
+      document.getElementById("outputBox").value = summaryText;
+      document.getElementById("summary").style.display = 'block';
+    }
   </script>
 </body>
 </html>
